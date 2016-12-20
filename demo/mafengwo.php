@@ -7,18 +7,19 @@ require dirname(__FILE__).'/../core/init.php';
 
 $configs = array(
     'name' => '马蜂窝',
-    'tasknum' => 6,
+    'tasknum' => 1,
     //'save_running_state' => true,
+    'log_show' => true,
     'domains' => array(
         'www.mafengwo.cn'
     ),
     'scan_urls' => array(
-        "http://www.mafengwo.cn/travel-scenic-spot/mafengwo/10088.html",            // 随便定义一个入口，反正没用
+        "http://www.mafengwo.cn/travel-scenic-spot/mafengwo/10088.html",            // 随便定义一个入口，要不然会报没有入口url错误，但是这里其实没用
     ),
-'list_url_regexes' => array(
-    "http://www.mafengwo.cn/mdd/base/list/pagedata_citylist\?page=\d+",         // 城市列表页
-    "http://www.mafengwo.cn/gonglve/ajax.php\?act=get_travellist\&mddid=\d+",   // 文章列表页
-),
+    'list_url_regexes' => array(
+        "http://www.mafengwo.cn/mdd/base/list/pagedata_citylist\?page=\d+",         // 城市列表页
+        "http://www.mafengwo.cn/gonglve/ajax.php\?act=get_travellist\&mddid=\d+",   // 文章列表页
+    ),
     'content_url_regexes' => array(
         "http://www.mafengwo.cn/i/\d+.html",
     ),
@@ -53,17 +54,18 @@ $spider = new phpspider($configs);
 
 $spider->on_start = function($phpspider) 
 {
-    requests::add_header('Referer','http://www.mafengwo.cn/mdd/citylist/21536.html');
+    requests::set_header('Referer','http://www.mafengwo.cn/mdd/citylist/21536.html');
 };
 
 $spider->on_scan_page = function($page, $content, $phpspider) 
 {
-    for ($i = 0; $i <= 297; $i++) 
+    //for ($i = 0; $i < 298; $i++) 
+    //测试的时候先采集一个国家，要不然等的时间太长
+    for ($i = 0; $i < 1; $i++) 
     {
         // 全国热点城市
         $url = "http://www.mafengwo.cn/mdd/base/list/pagedata_citylist?page={$i}";
         $options = array(
-            'url_type' => $url,
             'method' => 'post',
             'params' => array(
                 'mddid'=>21536,
@@ -88,7 +90,6 @@ $spider->on_list_page = function($page, $content, $phpspider)
             {
                 $url = "http://www.mafengwo.cn/gonglve/ajax.php?act=get_travellist&mddid={$v}";
                 $options = array(
-                    'url_type' => $url,
                     'method' => 'post',
                     'params' => array(
                         'mddid'=>$v,
@@ -122,7 +123,6 @@ $spider->on_list_page = function($page, $content, $phpspider)
                     $v = $page['request']['params']['mddid'];
                     $url = "http://www.mafengwo.cn/gonglve/ajax.php?act=get_travellist&mddid={$v}&page={$i}";
                     $options = array(
-                        'url_type' => $url,
                         'method' => 'post',
                         'params' => array(
                             'mddid'=>$v,

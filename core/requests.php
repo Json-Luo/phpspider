@@ -1,11 +1,17 @@
 <?php
+// +----------------------------------------------------------------------
+// | PHPSpider [ A PHP Framework For Crawler ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2006-2014 https://doc.phpspider.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: Seatle Yang <seatle@foxmail.com>
+// +----------------------------------------------------------------------
 
-/**
- * phpspider - A PHP Framework For Crawler
- *
- * @package  requests
- * @author   Seatle Yang <seatle@foxmail.com>
- */
+//----------------------------------
+// PHPSpider请求类文件
+//----------------------------------
 
 class requests
 {
@@ -13,24 +19,26 @@ class requests
      * 版本号
      * @var string
      */
-    const VERSION = '1.10.0';
+    const VERSION = '1.2.0';
 
     protected static $ch = null;
     protected static $timeout = 10;
-    //protected static $request = array(
+    //public static $request = array(
         //'headers' => array()
     //);
-    protected static $cookies = array();
-    protected static $domain_cookies = array();
-    protected static $hosts = array();
+    public static $input_encoding = null;
+    public static $output_encoding = null;
+    public static $cookies = array();
+    public static $domain_cookies = array();
+    public static $hosts = array();
     public static $headers = array();
+    public static $useragents = array();
+    public static $client_ips = array();
     public static $proxies = array();
     public static $url = null;
     public static $domain = null;
     public static $raw = null;
     public static $content = null;
-    public static $input_encoding = null;
-    public static $output_encoding = null;
     public static $info = array();
     public static $status_code = 0;
     public static $error = null;
@@ -69,7 +77,7 @@ class requests
      * @param string $headers
      * @return void
      */
-    public static function add_header($key, $value)
+    public static function set_header($key, $value)
     {
         self::$headers[$key] = $value;
     }
@@ -80,7 +88,7 @@ class requests
      * @param string $cookie
      * @return void
      */
-    public static function add_cookie($key, $value, $domain = '')
+    public static function set_cookie($key, $value, $domain = '')
     {
         if (empty($key) || empty($value)) 
         {
@@ -97,7 +105,7 @@ class requests
         return true;
     }
 
-    public static function add_cookies($cookies, $domain = '')
+    public static function set_cookies($cookies, $domain = '')
     {
         $cookies_arr = explode(";", $cookies);
         if (empty($cookies_arr)) 
@@ -120,6 +128,8 @@ class requests
                     $value .= trim(str_replace('"', '', $v));
                 }
             }
+            $key = strstr($cookie, '=', true);
+            $value = substr(strstr($cookie, '='), 1);
 
             if (!empty($domain)) 
             {
@@ -150,6 +160,35 @@ class requests
             return array();
         }
         return empty($domain) ? self::$cookies : self::$domain_cookies[$domain];
+    }
+
+    public static function del_cookies($domain = '')
+    {
+        if (!empty($domain) && !isset(self::$domain_cookies[$domain])) 
+        {
+            return false;
+        }
+        if ( empty($domain)) 
+        {
+            unset(self::$cookies);
+        }
+        else 
+        {
+            unset(self::$domain_cookies[$domain]);
+        }
+        return true;
+    }
+
+
+    /**
+     * 设置随机的user_agent
+     *
+     * @param string $useragent
+     * @return void
+     */
+    public static function set_useragents($useragents)
+    {
+        self::$useragents = $useragents;
     }
 
     /**
@@ -185,14 +224,28 @@ class requests
     }
 
     /**
+     * 设置随机伪造IP
+     * 
+     * @param mixed $ip
+     * @return void
+     * @author seatle <seatle@foxmail.com> 
+     * @created time :2016-11-16 11:06
+     */
+    public static function set_client_ips($ips)
+    {
+        self::$client_ips = $ips;
+    }
+
+    /**
      * 设置Hosts
      *
      * @param string $hosts
      * @return void
      */
-    public static function set_hosts($hosts)
+    public static function set_hosts($host, $ips = array())
     {
-        self::$hosts = $hosts;
+        $ips = is_array($ips) ? $ips : array($ips);
+        self::$hosts[$host] = $ips;
     }
 
     public static function get_response_body($domain)
@@ -228,26 +281,27 @@ class requests
         {
             // 从头部获取
             preg_match("/charset=([^\s]*)/i", $header, $out);
-            $encode = empty($out[1]) ? '' : str_replace(array('"', '\''), '', strtolower(trim($out[1])));
-            if (empty($encode)) 
+            $encoding = empty($out[1]) ? '' : str_replace(array('"', '\''), '', strtolower(trim($out[1])));
+            //$encoding = null;
+            if (empty($encoding)) 
             {
                 // 在某些情况下,无法再 response header 中获取 html 的编码格式
                 // 则需要根据 html 的文本格式获取
-                $encode = self::_get_encode($body);
-                $encode = strtolower($encode);
-                if($encode == false || $encode == "ascii")
+                $encoding = self::get_encoding($body);
+                $encoding = strtolower($encoding);
+                if($encoding == false || $encoding == "ascii")
                 {
-                    $encode = 'gbk';
+                    $encoding = 'gbk';
                 }
             }
-            self::$input_encoding = $encode;
+            self::$input_encoding = $encoding;
         }
 
-        // 设置了输出编码的转码，注意: xpath只支持utf-8
-        if (self::$output_encoding && self::$input_encoding != self::$output_encoding) 
+        // 设置了输出编码的转码，注意: xpath只支持utf-8，iso-8859-1 不要转，他本身就是utf-8
+        if (self::$output_encoding && self::$input_encoding != self::$output_encoding && self::$input_encoding != 'iso-8859-1') 
         {
             // 先将非utf8编码,转化为utf8编码
-            $body = mb_convert_encoding($body, self::$output_encoding, self::$input_encoding);
+            $body = @mb_convert_encoding($body, self::$output_encoding, self::$input_encoding);
             // 将页面中的指定的编码方式修改为utf8
             $body = preg_replace("/<meta([^>]*)charset=([^>]*)>/is", '<meta charset="UTF-8">', $body);
             // 直接干掉头部，国外很多信息是在头部的
@@ -309,16 +363,15 @@ class requests
         }
     }
 
-
     /**
      * 获取文件编码
      * @param $string
      * @return string
      */
-    private static function _get_encode($string)
+    public static function get_encoding($string)
     {
-        $encode = mb_detect_encoding($string, array('ASCII', 'GB2312', 'GBK', 'UTF-8'));
-        return strtolower($encode);
+        $encoding = mb_detect_encoding($string, array('UTF-8', 'GBK', 'GB2312', 'LATIN1', 'ASCII', 'BIG5'));
+        return strtolower($encoding);
     }
 
     /**
@@ -375,7 +428,7 @@ class requests
     public static function get($url, $fields = array())
     {
         self::init ();
-        return self::http_client($url, 'get', $fields);
+        return self::request($url, 'get', $fields);
     }
 
     /**
@@ -394,34 +447,40 @@ class requests
     public static function post($url, $fields = array())
     {
         self::init ();
-        return self::http_client($url, 'POST', $fields);
+        return self::request($url, 'POST', $fields);
     }
 
     public static function put($url, $fields = array())
     {
         self::init ();
-        return self::http_client($url, 'PUT', $fields);
+        return self::request($url, 'PUT', $fields);
     }
 
     public static function delete($url, $fields = array())
     {
         self::init ();
-        return self::http_client($url, 'DELETE', $fields);
+        return self::request($url, 'DELETE', $fields);
     }
 
     public static function head($url, $fields = array())
     {
         self::init ();
-        return self::http_client($url, 'HEAD', $fields);
+        return self::request($url, 'HEAD', $fields);
     }
 
     public static function options($url, $fields = array())
     {
         self::init ();
-        return self::http_client($url, 'OPTIONS', $fields);
+        return self::request($url, 'OPTIONS', $fields);
     }
 
-    public static function http_client($url, $method = 'GET', $fields)
+    public static function patch($url, $fields = array())
+    {
+        self::init ();
+        return self::request($url, 'PATCH', $fields);
+    }
+
+    public static function request($url, $method = 'GET', $fields)
     {
         $method = strtoupper($method);
         if(!self::_is_url($url))
@@ -446,14 +505,17 @@ class requests
         $domain = $parse_url['host'];
 
         // 随机绑定 hosts，做负载均衡
-        //if (self::$hosts) 
-        //{
-            //$host = $parse_url['host'];
-            //$key = rand(0, count(self::$hosts)-1);
-            //$ip = self::$hosts[$key];
-            //$url = str_replace($host, $ip, $url);
-            //self::$headers['Host'] = $host;
-        //}
+        if (self::$hosts) 
+        {
+            if (isset(self::$hosts[$domain]))
+            {
+                $hosts = self::$hosts[$domain];
+                $key = rand(0, count($hosts)-1);
+                $ip = $hosts[$key];
+                $url = str_replace($domain, $ip, $url);
+                self::$headers['Host'] = $domain;
+            }
+        }
 
         curl_setopt( self::$ch, CURLOPT_URL, $url );
 
@@ -469,7 +531,16 @@ class requests
                 self::$headers['X-HTTP-Method-Override'] = $method;
                 curl_setopt( self::$ch, CURLOPT_CUSTOMREQUEST, $method ); 
             }
-            curl_setopt( self::$ch, CURLOPT_POSTFIELDS, $fields );
+            if (!empty($fields)) 
+            {
+                if (is_array($fields)) 
+                {
+                    $fields = http_build_query($fields);
+                }
+                // 不能直接传数组，不知道是什么Bug，会非常慢
+                curl_setopt( self::$ch, CURLOPT_POSTFIELDS, $fields );
+                //curl_setopt( self::$ch, CURLOPT_POSTFIELDS, $fields );
+            }
         }
 
         $cookies = self::get_cookies();
@@ -486,6 +557,19 @@ class requests
             curl_setopt( self::$ch, CURLOPT_COOKIE, $cookies );
         }
 
+        if (!empty(self::$useragents)) 
+        {
+            $key = rand(0, count(self::$useragents) - 1);
+            self::$headers['User-Agent'] = self::$useragents[$key];
+        }
+
+        if (!empty(self::$client_ips)) 
+        {
+            $key = rand(0, count(self::$client_ips) - 1);
+            self::$headers["CLIENT-IP"] = self::$client_ips[$key];
+            self::$headers["X-FORWARDED-FOR"] = self::$client_ips[$key];
+        }
+
         if (self::$headers)
         {
             $headers = array();
@@ -497,6 +581,13 @@ class requests
         }
 
         curl_setopt( self::$ch, CURLOPT_ENCODING, 'gzip' );
+
+        // 关闭验证
+        if ("https" == substr($url, 0, 5)) 
+        {
+            curl_setopt(self::$ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt(self::$ch, CURLOPT_SSL_VERIFYHOST, false);
+        }
 
         if (self::$proxies)
         {
@@ -530,3 +621,5 @@ class requests
     }
 
 }
+
+

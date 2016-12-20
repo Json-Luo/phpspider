@@ -29,6 +29,7 @@ define('DOMNODE', 'DOMNode');
  * @todo implement ArrayAccess ?
  */
 class DOMEvent {
+
 	/**
 	 * Returns a boolean indicating whether the event bubbles up through the DOM or not.
 	 *
@@ -4755,6 +4756,13 @@ abstract class phpQuery {
 				);
 		return $content;
 	}
+
+
+	public static function loadDocumentHTML($html) 
+    {
+        self::newDocumentFile($html, null, true);
+    }
+
 	/**
 	 * Creates new document from file $file.
 	 * Chainable.
@@ -4762,10 +4770,19 @@ abstract class phpQuery {
 	 * @param string $file URLs allowed. See File wrapper page at php.net for more supported sources.
 	 * @return phpQueryObject|QueryTemplatesSource|QueryTemplatesParse|QueryTemplatesSourceQuery
 	 */
-	public static function newDocumentFile($file, $contentType = null) {
-		$documentID = self::createDocumentWrapper(
-			file_get_contents($file), $contentType
-		);
+	public static function newDocumentFile($file, $contentType = null, $is_html = false) {
+        if ($is_html) 
+        {
+            $documentID = self::createDocumentWrapper(
+                $file, $contentType
+            );
+        }
+        else
+        {
+            $documentID = self::createDocumentWrapper(
+                file_get_contents($file), $contentType
+            );
+        }
 		return new phpQueryObject($documentID);
 	}
 	/**

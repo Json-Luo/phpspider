@@ -1,16 +1,17 @@
 <?php
-/**
- * 数据库类
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the MIT-LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @author seatle<seatle@foxmail.com>
- * @copyright seatle<seatle@foxmail.com>
- * @link http://www.epooll.com/
- * @license http://www.opensource.org/licenses/mit-license.php MIT License
- */
+// +----------------------------------------------------------------------
+// | PHPSpider [ A PHP Framework For Crawler ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2006-2014 https://doc.phpspider.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: Seatle Yang <seatle@foxmail.com>
+// +----------------------------------------------------------------------
+
+//----------------------------------
+// PHPSpider数据库类文件
+//----------------------------------
 
 class db
 {
@@ -399,6 +400,32 @@ class db
         }
         $where = empty($where) ? "" : " Where " . implode(" And ", $where);
         $sql = substr($sql, 0, -1) . $where;
+        if ($return_sql) 
+        {
+            return $sql;
+        }
+        else 
+        {
+            if (self::query($sql))
+            {
+                return mysqli_affected_rows(self::$conn);
+            }
+            else 
+            {
+                return false;
+            }
+        }
+    }
+
+    public static function delete($table = '', $where = null, $return_sql = false)
+    {
+        // 小心全部被删除了
+        if (empty($where)) 
+        {
+            return false;
+        }
+        $where = 'Where ' . (!is_array($where) ? $where : implode(' And ', $where));
+        $sql = "Delete From `{$table}` {$where}";
         if ($return_sql) 
         {
             return $sql;

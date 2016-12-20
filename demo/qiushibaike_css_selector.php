@@ -6,10 +6,9 @@ require dirname(__FILE__).'/../core/init.php';
 /* 不要删除这段注释 */
 
 $configs = array(
-    'name' => '糗事百科',
-    //'log_show' => true,
-    'tasknum' => 1,
-    //'save_running_state' => true,
+    'name' => '糗事百科CSS选择器示例',
+    'tasknum' => 8,
+    'interval' => 350,
     'domains' => array(
         'qiushibaike.com',
         'www.qiushibaike.com'
@@ -24,15 +23,6 @@ $configs = array(
         "http://www.qiushibaike.com/article/\d+",
     ),
     'max_try' => 5,
-    //'export' => array(
-        //'type' => 'csv',
-        //'file' => PATH_DATA.'/qiushibaike.csv',
-    //),
-    //'export' => array(
-        //'type'  => 'sql',
-        //'file'  => PATH_DATA.'/qiushibaike.sql',
-        //'table' => 'content',
-    //),
     'export' => array(
         'type' => 'db', 
         'table' => 'content',
@@ -40,32 +30,44 @@ $configs = array(
     'fields' => array(
         array(
             'name' => "article_title",
-            'selector' => "//*[@id='single-next-link']//div[contains(@class,'content')]/text()[1]",
+            'selector' => "#single-next-link > div.content",
+            'selector_type' => 'css',
             'required' => true,
         ),
         array(
             'name' => "article_author",
-            'selector' => "//div[contains(@class,'author')]//h2",
+            'selector' => "div.author > a > h2",
+            'selector_type' => 'css',
             'required' => true,
         ),
         array(
             'name' => "article_headimg",
-            'selector' => "//div[contains(@class,'author')]//a[1]",
+            'selector' => "//div.author > a:eq(0)",
+            'selector_type' => 'css',
             'required' => true,
         ),
         array(
             'name' => "article_content",
-            'selector' => "//*[@id='single-next-link']//div[contains(@class,'content')]",
+            'selector' => "#single-next-link > div.content",
+            'selector_type' => 'css',
             'required' => true,
         ),
         array(
             'name' => "article_publish_time",
-            'selector' => "//div[contains(@class,'author')]//h2",
+            'selector' => "div.author > a > h2",  // 这里随便设置，on_extract_field回调里面会替换
+            'selector_type' => 'css',
             'required' => true,
         ),
         array(
             'name' => "url",
-            'selector' => "//div[contains(@class,'author')]//h2",   // 这里随便设置，on_extract_field回调里面会替换
+            'selector' => "div.author > a > h2",  // 这里随便设置，on_extract_field回调里面会替换
+            'selector_type' => 'css',
+            'required' => true,
+        ),
+        array(
+            'name' => "depth",
+            'selector' => "div.author > a > h2",  // 这里随便设置，on_extract_field回调里面会替换
+            'selector_type' => 'css',
             'required' => true,
         ),
     ),
@@ -105,22 +107,14 @@ $spider->on_handle_img = function($fieldname, $img)
 
 $spider->on_extract_field = function($fieldname, $data, $page) 
 {
-    $encoding = util::get_encoding($page['raw']);
-    if ($encoding == 'iso-8859-1') 
-    {
-        //$data = mb_convert_encoding($data, "LATIN1", "UTF-8");
-        //用 UTF-8 编码的数据解码为 ISO-8859-1 编码
-        $data = utf8_decode($data);
-    }
-
     if ($fieldname == 'article_title') 
     {
+        $data = trim($data);
         if (strlen($data) > 10) 
         {
-            // 下面方法截取中文会有异常
+            // 下面方法截取中文会有乱码
             //$data = substr($data, 0, 10)."...";
             $data = mb_substr($data, 0, 10, 'UTF-8')."...";
-            $data = trim($data);
         }
     }
     elseif ($fieldname == 'article_publish_time') 
@@ -132,6 +126,11 @@ $spider->on_extract_field = function($fieldname, $data, $page)
     elseif ($fieldname == 'url') 
     {
         $data = $page['url'];
+    }
+    // 把当前内容页depth替换上面的field
+    elseif ($fieldname == 'depth') 
+    {
+        $data = $page['request']['depth'];
     }
     return $data;
 };

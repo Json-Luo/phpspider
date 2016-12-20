@@ -1,11 +1,17 @@
 <?php
+// +----------------------------------------------------------------------
+// | PHPSpider [ A PHP Framework For Crawler ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2006-2014 https://doc.phpspider.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: Seatle Yang <seatle@foxmail.com>
+// +----------------------------------------------------------------------
 
-/**
- * phpspider - A PHP Framework For Crawler
- *
- * @package  phpspider
- * @author   Seatle Yang <seatle@foxmail.com>
- */
+//----------------------------------
+// PHPSpider公共入口文件
+//----------------------------------
 
 // 严格开发模式
 error_reporting( E_ALL );
@@ -41,9 +47,12 @@ if( file_exists( PATH_ROOT."/config/inc_config.php" ) )
 }
 require CORE.'/log.php';
 require CORE.'/requests.php';
+require CORE.'/selector.php';
 require CORE.'/util.php';
 require CORE.'/db.php';
 require CORE.'/cache.php';
+require CORE."/worker.php"; 
+require CORE."/phpspider.php"; 
 
 // 启动的时候生成data目录
 util::path_exists(PATH_DATA);
@@ -52,34 +61,39 @@ util::path_exists(PATH_DATA."/log");
 util::path_exists(PATH_DATA."/cache");
 util::path_exists(PATH_DATA."/status");
 
-require CORE."/worker.php"; 
-require CORE."/phpspider.php"; 
+function autoload($classname) {
+    set_include_path(PATH_ROOT.'/library/');
+    spl_autoload($classname); //replaces include/require
+}
+
+spl_autoload_extensions('.php');
+spl_autoload_register('autoload');
 
 /**
  * 自动加载类库处理
  * @return void
  */
-function __autoload( $classname )
-{
-    $classname = preg_replace("/[^0-9a-z_]/i", '', $classname);
-    if( class_exists ( $classname ) ) {
-        return true;
-    }
-    $classfile = $classname.'.php';
-    try
-    {
-        if ( file_exists ( PATH_LIBRARY.'/'.$classfile ) )
-        {
-            require PATH_LIBRARY.'/'.$classfile;
-        }
-        else
-        {
-            throw new Exception ( 'Error: Cannot find the '.$classname );
-        }
-    }
-    catch ( Exception $e )
-    {
-        log::error($e->getMessage().'|'.$classname);
-        exit();
-    }
-}
+//function __autoload( $classname )
+//{
+    //$classname = preg_replace("/[^0-9a-z_]/i", '', $classname);
+    //if( class_exists ( $classname ) ) {
+        //return true;
+    //}
+    //$classfile = $classname.'.php';
+    //try
+    //{
+        //if ( file_exists ( PATH_LIBRARY.'/'.$classfile ) )
+        //{
+            //require PATH_LIBRARY.'/'.$classfile;
+        //}
+        //else
+        //{
+            //throw new Exception ( 'Error: Cannot find the '.$classname );
+        //}
+    //}
+    //catch ( Exception $e )
+    //{
+        //log::error($e->getMessage().'|'.$classname);
+        //exit();
+    //}
+//}

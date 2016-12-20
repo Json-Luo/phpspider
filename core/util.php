@@ -1,11 +1,18 @@
 <?php
+// +----------------------------------------------------------------------
+// | PHPSpider [ A PHP Framework For Crawler ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2006-2014 https://doc.phpspider.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: Seatle Yang <seatle@foxmail.com>
+// +----------------------------------------------------------------------
 
-/**
- * 实用函数集合
- *
- * @author seatle<seatle@seatle.com>
- * @version $Id$
- */
+//----------------------------------
+// PHPSpider实用函数集合类文件
+//----------------------------------
+
 class util
 {
     /**
@@ -51,25 +58,52 @@ class util
         unlink(PATH_DATA."/lock/{$lock_name}.lock");
     }
 
-    public static function time2second($seconds)
+    public static function time2second($time, $is_log = true)
     {
-        $seconds = (int)$seconds;
-        if( $seconds > 3600 )
+        if(is_numeric($time)) 
         {
-            $days_num = '';
-            if( $seconds > 24*3600 )
+            $value = array(
+                "years" => 0, "days" => 0, "hours" => 0,
+                "minutes" => 0, "seconds" => 0,
+            );
+            if($time >= 31556926)
             {
-                $days	  = (int)($seconds/86400);
-                $days_num = $days." day";
-                $seconds  = $seconds%86400;//取余
+                $value["years"] = floor($time/31556926);
+                $time = ($time%31556926);
             }
-            $hours = intval($seconds/3600);
-            $minutes = $seconds%3600;//取余下秒数
-            $time = $days_num.$hours." hour ".gmstrftime('%M minutes %S seconds', $minutes);
-        }else{
-            $time = gmstrftime('%H hour %M minutes %S seconds', $seconds);
+            if($time >= 86400)
+            {
+                $value["days"] = floor($time/86400);
+                $time = ($time%86400);
+            }
+            if($time >= 3600)
+            {
+                $value["hours"] = floor($time/3600);
+                $time = ($time%3600);
+            }
+            if($time >= 60)
+            {
+                $value["minutes"] = floor($time/60);
+                $time = ($time%60);
+            }
+            $value["seconds"] = floor($time);
+            //return (array) $value;
+            //$t = $value["years"] ."y ". $value["days"] ."d ". $value["hours"] ."h ". $value["minutes"] ."m ".$value["seconds"]."s";
+            if ($is_log) 
+            {
+                $t = $value["days"] ."d ". $value["hours"] ."h ". $value["minutes"] ."m ".$value["seconds"]."s";
+            }
+            else 
+            {
+                $t = $value["days"] ." days ". $value["hours"] ." hours ". $value["minutes"] ." minutes";
+            }
+            return $t;
+
         }
-        return $time;
+        else
+        {
+            return false;
+        }
     }
 
     public static function get_days($day_sta, $day_end = true, $range = 86400)
@@ -543,6 +577,30 @@ class util
         {
             return false;
         }
+    }
+
+    /**
+     * 获取文件编码
+     * @param $string
+     * @return string
+     */
+    public static function get_encoding($string)
+    {
+        $encoding = mb_detect_encoding($string, array('UTF-8', 'GBK', 'GB2312', 'LATIN1', 'ASCII', 'BIG5'));
+        return strtolower($encoding);
+    }
+
+    /**
+     * 转换数组值的编码格式
+     * @param  array $arr           
+     * @param  string $toEncoding   
+     * @param  string $fromEncoding 
+     * @return array                
+     */
+    public static function array_iconv($arr, $from_encoding, $to_encoding)
+    {
+        eval('$arr = '.iconv($from_encoding, $to_encoding.'//IGNORE', var_export($arr,TRUE)).';');
+        return $arr;
     }
 
     /**
